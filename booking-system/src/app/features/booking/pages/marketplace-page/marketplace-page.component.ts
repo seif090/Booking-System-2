@@ -1,4 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { BookingService } from '../../services/booking.service';
 import { ServiceCardComponent } from '../../components/service-card/service-card.component';
@@ -14,11 +15,11 @@ import { Service, ServiceType } from '../../../../shared/models/service.model';
     <section class="py-8">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
-          <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">اكتشف خدماتنا</h1>
-          <p class="text-gray-500 max-w-xl mx-auto">احجز الفنادق، النقل، المطاعم، والتأشيرات بكل سهولة وأمان</p>
+          <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white mb-3">اكتشف خدماتنا</h1>
+          <p class="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">احجز الفنادق، النقل، المطاعم، والتأشيرات بكل سهولة وأمان</p>
         </div>
 
-        <div class="sticky top-20 z-30 bg-gray-50/95 backdrop-blur-sm py-4 mb-8 rounded-2xl border border-gray-100 shadow-sm">
+        <div class="sticky top-20 z-30 bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur-sm py-4 mb-8 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
           <div class="flex flex-col sm:flex-row gap-3 px-4">
             <div class="relative flex-1">
               <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
@@ -27,7 +28,7 @@ import { Service, ServiceType } from '../../../../shared/models/service.model';
                 [(ngModel)]="searchQuery"
                 (ngModelChange)="onSearch($event)"
                 placeholder="ابحث عن خدمة..."
-                class="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             <div class="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
@@ -41,6 +42,9 @@ import { Service, ServiceType } from '../../../../shared/models/service.model';
                   [class.text-gray-600]="activeFilter !== filter.value"
                   [class.border]="activeFilter !== filter.value"
                   [class.border-gray-200]="activeFilter !== filter.value"
+                  [class.dark:bg-gray-700]="activeFilter !== filter.value"
+                  [class.dark:text-gray-300]="activeFilter !== filter.value"
+                  [class.dark:border-gray-600]="activeFilter !== filter.value"
                 >
                   {{ filter.label }}
                 </button>
@@ -58,8 +62,8 @@ import { Service, ServiceType } from '../../../../shared/models/service.model';
         } @else if (filteredServices().length === 0) {
           <div class="text-center py-20">
             <div class="text-6xl mb-4">🔍</div>
-            <h3 class="text-lg font-bold text-gray-900 mb-2">لا توجد نتائج</h3>
-            <p class="text-gray-500">جرب البحث بكلمات مختلفة أو إعادة ضبط الفلتر</p>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">لا توجد نتائج</h3>
+            <p class="text-gray-500 dark:text-gray-400">جرب البحث بكلمات مختلفة أو إعادة ضبط الفلتر</p>
           </div>
         } @else {
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -67,6 +71,7 @@ import { Service, ServiceType } from '../../../../shared/models/service.model';
               <app-service-card
                 [service]="service"
                 (bookClick)="openBookingModal($event)"
+                (detailsClick)="navigateToDetails($event)"
               ></app-service-card>
             }
           </div>
@@ -85,6 +90,7 @@ import { Service, ServiceType } from '../../../../shared/models/service.model';
 })
 export class MarketplacePageComponent implements OnInit {
   private readonly bookingService = inject(BookingService);
+  private readonly router = inject(Router);
 
   isLoading = signal(true);
   selectedService = signal<Service | null>(null);
@@ -123,5 +129,9 @@ export class MarketplacePageComponent implements OnInit {
     if (svc) {
       this.selectedService.set(svc);
     }
+  }
+
+  navigateToDetails(serviceId: string): void {
+    this.router.navigate(['/service', serviceId]);
   }
 }

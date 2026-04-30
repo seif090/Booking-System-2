@@ -6,6 +6,9 @@ export interface Service {
   description: string;
   image: string;
   type: ServiceType;
+  price: number;
+  location?: string;
+  rating?: number;
 }
 
 export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {

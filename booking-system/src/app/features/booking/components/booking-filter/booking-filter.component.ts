@@ -14,7 +14,7 @@ interface FilterTabItem {
   selector: 'app-booking-filter',
   standalone: true,
   template: `
-    <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-xl overflow-x-auto">
+    <div class="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-x-auto">
       @for (tab of tabs; track tab.value) {
         <button
           (click)="setFilter(tab.value)"
@@ -23,6 +23,9 @@ interface FilterTabItem {
           [class.shadow-sm]="activeFilter === tab.value"
           [class.text-gray-700]="activeFilter === tab.value"
           [class.text-gray-500]="activeFilter !== tab.value"
+          [class.dark:bg-gray-600]="activeFilter === tab.value"
+          [class.dark:text-white]="activeFilter === tab.value"
+          [class.dark:text-gray-300]="activeFilter !== tab.value"
         >
           {{ tab.label }}
           @if (tab.count > 0) {
@@ -30,6 +33,8 @@ interface FilterTabItem {
               class="mr-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full text-xs"
               [class.bg-gray-200]="activeFilter === tab.value"
               [class.bg-gray-100]="activeFilter !== tab.value"
+              [class.dark:bg-gray-500]="activeFilter === tab.value"
+              [class.dark:bg-gray-600]="activeFilter !== tab.value"
             >{{ tab.count }}</span>
           }
         </button>
