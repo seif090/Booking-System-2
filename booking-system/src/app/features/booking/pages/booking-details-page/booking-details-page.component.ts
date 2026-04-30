@@ -66,12 +66,42 @@ import { ConfirmModalComponent } from '../../../../shared/components/confirm-mod
                     <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">رقم الهاتف</h3>
                     <p class="text-lg font-medium text-gray-900 dark:text-white">{{ booking.phone }}</p>
                   </div>
-                  @if (booking.notes) {
-                    <div>
-                      <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">ملاحظات</h3>
-                      <p class="text-gray-700 dark:text-gray-300">{{ booking.notes }}</p>
+                  <div>
+                    <div class="flex items-center justify-between mb-1">
+                      <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">ملاحظات</h3>
+                      @if (!editingNotes) {
+                        <button
+                          (click)="editingNotes = true"
+                          class="text-xs text-primary-600 hover:text-primary-700"
+                        >
+                          تعديل
+                        </button>
+                      }
                     </div>
-                  }
+                    @if (editingNotes) {
+                      <textarea
+                        [(ngModel)]="editableNotes"
+                        rows="3"
+                        class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                      ></textarea>
+                      <div class="flex gap-2 mt-2">
+                        <button
+                          (click)="saveNotes()"
+                          class="px-4 py-2 rounded-xl text-xs font-bold bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                        >
+                          حفظ
+                        </button>
+                        <button
+                          (click)="cancelEditNotes()"
+                          class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                    } @else {
+                      <p class="text-gray-700 dark:text-gray-300">{{ booking.notes || 'لا توجد ملاحظات' }}</p>
+                    }
+                  </div>
                 </div>
                 <div class="text-center sm:text-left">
                   <div class="text-4xl font-bold text-primary-600 mb-1">{{ service.price }}</div>
@@ -183,6 +213,8 @@ export class BookingDetailsPageComponent implements OnInit {
   showCancelModal = false;
   rating = 0;
   review = '';
+  editingNotes = false;
+  editableNotes = '';
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -192,6 +224,7 @@ export class BookingDetailsPageComponent implements OnInit {
       if (found) {
         this.booking = found;
         this.service = this.bookingService.getServiceById(found.serviceId);
+        this.editableNotes = found.notes ?? '';
         if (found.rating) {
           this.rating = found.rating;
           this.review = found.review ?? '';
@@ -251,6 +284,20 @@ export class BookingDetailsPageComponent implements OnInit {
       if (duplicated) {
         this.router.navigate(['/my-bookings', duplicated.id]);
       }
+    }
+  }
+
+  saveNotes(): void {
+    if (this.booking) {
+      this.bookingService.updateBookingNotes(this.booking.id, this.editableNotes);
+      this.editingNotes = false;
+    }
+  }
+
+  cancelEditNotes(): void {
+    if (this.booking) {
+      this.editableNotes = this.booking.notes ?? '';
+      this.editingNotes = false;
     }
   }
 }

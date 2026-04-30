@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BookingService } from '../../services/booking.service';
 import { BookingModalComponent } from '../../components/booking-modal/booking-modal.component';
@@ -17,7 +17,7 @@ import { Service } from '../../../../shared/models/service.model';
             <span>العودة للخدمات</span>
           </a>
 
-          <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700">
             <div class="relative h-64 sm:h-80">
               <img [src]="service.image" class="w-full h-full object-cover" [alt]="service.title" />
               <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
@@ -43,16 +43,16 @@ import { Service } from '../../../../shared/models/service.model';
             <div class="p-6 sm:p-8">
               <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-8">
                 <div class="flex-1">
-                  <h2 class="text-xl font-bold text-gray-900 mb-3">عن الخدمة</h2>
-                  <p class="text-gray-600 leading-relaxed">{{ service.description }}</p>
+                  <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-3">عن الخدمة</h2>
+                  <p class="text-gray-600 dark:text-gray-400 leading-relaxed">{{ service.description }}</p>
                 </div>
                 <div class="text-center sm:text-left">
                   <div class="text-4xl font-bold text-primary-600 mb-1">{{ service.price }}</div>
-                  <div class="text-sm text-gray-500">ريال سعودي</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">ريال سعودي</div>
                 </div>
               </div>
 
-              <div class="flex flex-col sm:flex-row gap-4">
+              <div class="flex flex-col sm:flex-row gap-4 mb-8">
                 <button
                   (click)="showBookingModal = true"
                   class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl transition-colors"
@@ -61,11 +61,33 @@ import { Service } from '../../../../shared/models/service.model';
                 </button>
                 <a
                   routerLink="/"
-                  class="flex-1 text-center py-3 px-6 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  class="flex-1 text-center py-3 px-6 rounded-xl font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   تصفح خدمات أخرى
                 </a>
               </div>
+
+              @if (serviceReviews().length > 0) {
+                <div class="border-t border-gray-100 dark:border-gray-700 pt-8">
+                  <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">التقييمات والمراجعات</h2>
+                  <div class="space-y-4">
+                    @for (review of serviceReviews(); track review.id) {
+                      <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="flex items-center gap-2">
+                            <span class="text-yellow-400">{{ '⭐'.repeat(review.rating) }}</span>
+                            <span class="text-sm text-gray-600 dark:text-gray-400">({{ review.rating }}/5)</span>
+                          </div>
+                          <span class="text-xs text-gray-500 dark:text-gray-400">{{ review.date }}</span>
+                        </div>
+                        @if (review.reviewText) {
+                          <p class="text-gray-700 dark:text-gray-300 text-sm">{{ review.reviewText }}</p>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
             </div>
           </div>
         </div>
@@ -81,7 +103,7 @@ import { Service } from '../../../../shared/models/service.model';
     } @else {
       <div class="text-center py-20">
         <div class="text-6xl mb-4">🔍</div>
-        <h3 class="text-lg font-bold text-gray-900 mb-2">الخدمة غير موجودة</h3>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">الخدمة غير موجودة</h3>
         <a routerLink="/" class="text-primary-600 hover:underline">العودة للخدمات</a>
       </div>
     }
@@ -94,6 +116,22 @@ export class ServiceDetailsPageComponent implements OnInit {
 
   service: Service | null = null;
   showBookingModal = false;
+
+  readonly serviceReviews = computed(() => {
+    if (!this.service) return [];
+    return this.bookingService.bookings()
+      .filter((b) => b.serviceId === this.service!.id && b.rating && b.status === 'confirmed')
+      .map((b) => ({
+        id: b.id,
+        rating: b.rating!,
+        reviewText: b.review,
+        date: new Date(b.createdAt).toLocaleDateString('ar-SA', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }),
+      }));
+  });
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');

@@ -16,6 +16,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'calendar',
+    loadComponent: () =>
+      import('./features/booking/pages/calendar-page/calendar-page.component').then(
+        (m) => m.CalendarPageComponent
+      ),
+  },
+  {
     path: 'service/:id',
     loadComponent: () =>
       import('./features/booking/pages/service-details-page/service-details-page.component').then(

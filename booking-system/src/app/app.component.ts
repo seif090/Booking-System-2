@@ -34,6 +34,13 @@ import { I18nService } from './core/services/i18n.service';
                 الإحصائيات
               </a>
               <a
+                routerLink="/calendar"
+                routerLinkActive="text-primary-600 bg-primary-50 dark:bg-primary-900/30"
+                class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                التقويم
+              </a>
+              <a
                 routerLink="/my-bookings"
                 routerLinkActive="text-primary-600 bg-primary-50 dark:bg-primary-900/30"
                 class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"

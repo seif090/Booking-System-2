@@ -268,9 +268,25 @@ export class BookingService {
     );
   }
 
+  bulkUpdateStatus(ids: string[], status: BookingStatus): void {
+    this._bookings.update((list: Booking[]) =>
+      list.map((b: Booking) => (ids.includes(b.id) ? { ...b, status } : b))
+    );
+  }
+
+  bulkDelete(ids: string[]): void {
+    this._bookings.update((list: Booking[]) => list.filter((b: Booking) => !ids.includes(b.id)));
+  }
+
   updateBookingRating(id: string, rating: number, review?: string): void {
     this._bookings.update((list: Booking[]) =>
       list.map((b: Booking) => (b.id === id ? { ...b, rating, review } : b))
+    );
+  }
+
+  updateBookingNotes(id: string, notes: string): void {
+    this._bookings.update((list: Booking[]) =>
+      list.map((b: Booking) => (b.id === id ? { ...b, notes } : b))
     );
   }
 

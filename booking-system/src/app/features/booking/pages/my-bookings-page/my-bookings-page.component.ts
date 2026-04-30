@@ -1,9 +1,10 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { BookingService } from '../../services/booking.service';
 import { BookingCardComponent } from '../../components/booking-card/booking-card.component';
 import { BookingFilterComponent } from '../../components/booking-filter/booking-filter.component';
+import { BookingStatus } from '../../../../shared/models/booking.model';
 
 @Component({
   selector: 'app-my-bookings-page',
@@ -68,6 +69,40 @@ import { BookingFilterComponent } from '../../components/booking-filter/booking-
           </div>
         </div>
 
+        @if (selectedIds.size > 0) {
+          <div class="bg-primary-50 dark:bg-primary-900/30 rounded-2xl shadow-sm p-4 mb-6 border border-primary-200 dark:border-primary-700">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-primary-700 dark:text-primary-300">{{ selectedIds.size }} حجز محدد</span>
+              <div class="flex gap-2">
+                <button
+                  (click)="bulkUpdateStatus('confirmed')"
+                  class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                >
+                  تأكيد الكل
+                </button>
+                <button
+                  (click)="bulkUpdateStatus('cancelled')"
+                  class="px-4 py-2 rounded-xl text-xs font-bold bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+                >
+                  إلغاء الكل
+                </button>
+                <button
+                  (click)="bulkDelete()"
+                  class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                >
+                  حذف الكل
+                </button>
+                <button
+                  (click)="clearSelection()"
+                  class="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  إلغاء التحديد
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
         @if (filteredBookings().length === 0) {
           <div class="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
             <div class="text-6xl mb-4">📋</div>
@@ -83,7 +118,13 @@ import { BookingFilterComponent } from '../../components/booking-filter/booking-
         } @else {
           <div class="space-y-4">
             @for (booking of filteredBookings(); track booking.id) {
-              <app-booking-card [booking]="booking"></app-booking-card>
+              <app-booking-card
+                [booking]="booking"
+                [selected]="selectedIds.has(booking.id)"
+                (selectionChanged)="onSelectionChange($event)"
+                (statusChanged)="clearSelection()"
+                (quickAction)="onQuickAction($event)"
+              ></app-booking-card>
             }
           </div>
         }
@@ -93,11 +134,13 @@ import { BookingFilterComponent } from '../../components/booking-filter/booking-
 })
 export class MyBookingsPageComponent {
   private readonly bookingService = inject(BookingService);
+  private readonly router = inject(Router);
 
   searchQuery = '';
   dateFrom: string | null = null;
   dateTo: string | null = null;
   sortBy: 'date' | 'status' = 'date';
+  selectedIds = new Set<string>();
 
   get filteredBookings() {
     return this.bookingService.filteredBookings;
@@ -121,5 +164,48 @@ export class MyBookingsPageComponent {
 
   exportToCSV(): void {
     this.bookingService.exportBookingsToCSV();
+  }
+
+  onSelectionChange(event: { id: string; selected: boolean }): void {
+    if (event.selected) {
+      this.selectedIds.add(event.id);
+    } else {
+      this.selectedIds.delete(event.id);
+    }
+  }
+
+  clearSelection(): void {
+    this.selectedIds.clear();
+  }
+
+  bulkUpdateStatus(status: BookingStatus): void {
+    if (this.selectedIds.size > 0) {
+      this.bookingService.bulkUpdateStatus([...this.selectedIds], status);
+      this.clearSelection();
+    }
+  }
+
+  bulkDelete(): void {
+    if (this.selectedIds.size > 0) {
+      this.bookingService.bulkDelete([...this.selectedIds]);
+      this.clearSelection();
+    }
+  }
+
+  onQuickAction(event: { id: string; action: string }): void {
+    switch (event.action) {
+      case 'duplicate':
+        const duplicated = this.bookingService.duplicateBooking(event.id);
+        if (duplicated) {
+          this.router.navigate(['/my-bookings', duplicated.id]);
+        }
+        break;
+      case 'confirm':
+        this.bookingService.updateBookingStatus(event.id, 'confirmed');
+        break;
+      case 'cancel':
+        this.bookingService.updateBookingStatus(event.id, 'cancelled');
+        break;
+    }
   }
 }

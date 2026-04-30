@@ -84,6 +84,68 @@ import { Service, ServiceType } from '../../../../shared/models/service.model';
           </div>
         </div>
 
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 mb-6 border border-gray-100 dark:border-gray-700">
+          <div class="flex flex-col lg:flex-row gap-4">
+            <div class="relative flex-1">
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+              <input
+                type="text"
+                [(ngModel)]="searchQuery"
+                (ngModelChange)="onSearch($event)"
+                placeholder="ابحث عن خدمة..."
+                class="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div class="flex gap-2">
+              <input
+                type="number"
+                [(ngModel)]="minPrice"
+                (ngModelChange)="onPriceChange()"
+                placeholder="من"
+                class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 w-24"
+              />
+              <input
+                type="number"
+                [(ngModel)]="maxPrice"
+                (ngModelChange)="onPriceChange()"
+                placeholder="إلى"
+                class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 w-24"
+              />
+              @if (minPrice || maxPrice) {
+                <button
+                  (click)="clearPriceFilter()"
+                  class="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  مسح
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        @if (comparingIds.size > 0) {
+          <div class="bg-primary-50 dark:bg-primary-900/30 rounded-2xl shadow-sm p-4 mb-6 border border-primary-200 dark:border-primary-700">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-primary-700 dark:text-primary-300">{{ comparingIds.size }} خدمات للمقارنة</span>
+              <div class="flex gap-2">
+                @if (comparingIds.size >= 2) {
+                  <button
+                    class="px-4 py-2 rounded-xl text-xs font-bold bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                  >
+                    مقارنة
+                  </button>
+                }
+                <button
+                  (click)="clearComparison()"
+                  class="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  مسح
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
         @if (isLoading()) {
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             @for (_ of [1,2,3,4,5,6,7,8]; track $index) {
@@ -101,8 +163,10 @@ import { Service, ServiceType } from '../../../../shared/models/service.model';
             @for (service of filteredServices(); track service.id) {
               <app-service-card
                 [service]="service"
+                [isComparing]="comparingIds.has(service.id)"
                 (bookClick)="openBookingModal($event)"
                 (detailsClick)="navigateToDetails($event)"
+                (compareToggle)="onCompareToggle($event)"
               ></app-service-card>
             }
           </div>
@@ -128,6 +192,7 @@ export class MarketplacePageComponent implements OnInit {
   searchQuery = '';
   minPrice: number | null = null;
   maxPrice: number | null = null;
+  comparingIds = new Set<string>();
 
   readonly filters: { value: ServiceType | '' | 'favorites'; label: string }[] = [
     { value: '', label: 'الكل' },
@@ -171,6 +236,25 @@ export class MarketplacePageComponent implements OnInit {
     this.minPrice = null;
     this.maxPrice = null;
     this.bookingService.setPriceRange(null, null);
+  }
+
+  onCompareToggle(event: { id: string; selected: boolean }): void {
+    if (event.selected) {
+      if (this.comparingIds.size >= 3) {
+        return;
+      }
+      this.comparingIds.add(event.id);
+    } else {
+      this.comparingIds.delete(event.id);
+    }
+  }
+
+  clearComparison(): void {
+    this.comparingIds.clear();
+  }
+
+  get comparingServices(): Service[] {
+    return this.bookingService.services().filter((s) => this.comparingIds.has(s.id));
   }
 
   openBookingModal(serviceId: string): void {
