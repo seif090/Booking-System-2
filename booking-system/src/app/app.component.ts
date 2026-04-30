@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ToastComponent } from './shared/components/toast/toast.component';
 import { ThemeService } from './core/services/theme.service';
+import { I18nService } from './core/services/i18n.service';
 
 @Component({
   selector: 'app-root',
@@ -40,6 +41,13 @@ import { ThemeService } from './core/services/theme.service';
                 حجوزاتي
               </a>
               <button
+                (click)="i18nService.toggle()"
+                class="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Toggle Language"
+              >
+                <span class="text-xl font-bold">{{ i18nService.lang() === 'ar' ? 'EN' : 'ع' }}</span>
+              </button>
+              <button
                 (click)="themeService.toggle()"
                 class="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 title="تبديل الوضع الليلي"
@@ -71,4 +79,5 @@ import { ThemeService } from './core/services/theme.service';
 })
 export class AppComponent {
   readonly themeService = inject(ThemeService);
+  readonly i18nService = inject(I18nService);
 }

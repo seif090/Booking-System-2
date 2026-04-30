@@ -8,6 +8,8 @@ export interface Booking {
   notes: string;
   status: BookingStatus;
   createdAt: string;
+  rating?: number;
+  review?: string;
 }
 
 export interface BookingFormValue {

@@ -268,6 +268,29 @@ export class BookingService {
     );
   }
 
+  updateBookingRating(id: string, rating: number, review?: string): void {
+    this._bookings.update((list: Booking[]) =>
+      list.map((b: Booking) => (b.id === id ? { ...b, rating, review } : b))
+    );
+  }
+
+  duplicateBooking(id: string): Booking | null {
+    const original = this._bookings().find((b: Booking) => b.id === id);
+    if (!original) return null;
+
+    const duplicated: Booking = {
+      ...original,
+      id: crypto.randomUUID(),
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      rating: undefined,
+      review: undefined,
+    };
+
+    this._bookings.update((list: Booking[]) => [duplicated, ...list]);
+    return duplicated;
+  }
+
   getServiceById(id: string): Service | undefined {
     return this._services().find((s: Service) => s.id === id);
   }
