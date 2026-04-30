@@ -1,21 +1,12 @@
 {
   "version": 2,
-  "builds": [
+  "buildCommand": "ng build --configuration production",
+  "outputDirectory": "dist/booking-system",
+  "framework": null,
+  "rewrites": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist/booking-system"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html",
-      "headers": {
-        "cache-control": "public, max-age=0, must-revalidate"
-      }
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
