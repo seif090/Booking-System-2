@@ -1,5 +1,6 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { Service, SERVICE_TYPE_LABELS } from '../../../../shared/models/service.model';
+import { BookingService } from '../../services/booking.service';
 
 @Component({
   selector: 'app-service-card',
@@ -22,6 +23,13 @@ import { Service, SERVICE_TYPE_LABELS } from '../../../../shared/models/service.
             <span>{{ service.rating }}</span>
           </div>
         }
+        <button
+          (click)="$event.stopPropagation(); toggleFavorite()"
+          class="absolute bottom-3 left-3 w-10 h-10 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors shadow-sm"
+          [title]="isFavorite() ? 'إزالة من المفضلة' : 'إضافة للمفضلة'"
+        >
+          <span class="text-xl">{{ isFavorite() ? '❤️' : '🤍' }}</span>
+        </button>
       </div>
       <div class="p-5 flex flex-col flex-1">
         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 leading-tight">{{ service.title }}</h3>
@@ -53,7 +61,17 @@ export class ServiceCardComponent {
   @Output() bookClick = new EventEmitter<string>();
   @Output() detailsClick = new EventEmitter<string>();
 
+  private readonly bookingService = inject(BookingService);
+
   get typeLabel(): string {
     return SERVICE_TYPE_LABELS[this.service.type] ?? this.service.type;
+  }
+
+  isFavorite(): boolean {
+    return this.bookingService.isFavorite(this.service.id);
+  }
+
+  toggleFavorite(): void {
+    this.bookingService.toggleFavorite(this.service.id);
   }
 }

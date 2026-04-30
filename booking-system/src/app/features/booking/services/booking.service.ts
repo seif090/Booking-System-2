@@ -3,6 +3,7 @@ import { Service, ServiceType } from '../../../shared/models/service.model';
 import { Booking, BookingStatus, BookingFormValue } from '../../../shared/models/booking.model';
 
 const STORAGE_KEY = 'bs_bookings';
+const FAVORITES_KEY = 'bs_favorites';
 
 const MOCK_SERVICES: Service[] = [
   {
@@ -94,34 +95,100 @@ export class BookingService {
   private readonly _searchQuery = signal('');
   private readonly _filterType = signal<ServiceType | ''>('');
   private readonly _bookingsFilter = signal<BookingStatus | ''>('');
+  private readonly _bookingsSearch = signal('');
+  private readonly _dateFrom = signal<string | null>(null);
+  private readonly _dateTo = signal<string | null>(null);
+  private readonly _sortBy = signal<'date' | 'status'>('date');
+  private readonly _minPrice = signal<number | null>(null);
+  private readonly _maxPrice = signal<number | null>(null);
+  private readonly _favorites = signal<Set<string>>(new Set());
+  private readonly _showFavoritesOnly = signal(false);
 
   readonly services = this._services.asReadonly();
   readonly bookings = this._bookings.asReadonly();
   readonly searchQuery = this._searchQuery.asReadonly();
   readonly filterType = this._filterType.asReadonly();
   readonly bookingsFilter = this._bookingsFilter.asReadonly();
+  readonly bookingsSearch = this._bookingsSearch.asReadonly();
+  readonly dateFrom = this._dateFrom.asReadonly();
+  readonly dateTo = this._dateTo.asReadonly();
+  readonly sortBy = this._sortBy.asReadonly();
+  readonly minPrice = this._minPrice.asReadonly();
+  readonly maxPrice = this._maxPrice.asReadonly();
+  readonly favorites = this._favorites.asReadonly();
+  readonly showFavoritesOnly = this._showFavoritesOnly.asReadonly();
 
   readonly filteredServices = computed(() => {
     const search = this._searchQuery().toLowerCase().trim();
     const type = this._filterType();
+    const min = this._minPrice();
+    const max = this._maxPrice();
+    const showFavorites = this._showFavoritesOnly();
+    const favorites = this._favorites();
     return this._services().filter((s: Service) => {
       const matchesSearch = !search || s.title.toLowerCase().includes(search) || s.description.toLowerCase().includes(search);
       const matchesType = !type || s.type === type;
-      return matchesSearch && matchesType;
+      const matchesMin = !min || s.price >= min;
+      const matchesMax = !max || s.price <= max;
+      const matchesFavorites = !showFavorites || favorites.has(s.id);
+      return matchesSearch && matchesType && matchesMin && matchesMax && matchesFavorites;
     });
   });
 
   readonly filteredBookings = computed(() => {
     const status = this._bookingsFilter();
-    const all = this._bookings();
-    if (!status) return all;
-    return all.filter((b: Booking) => b.status === status);
+    const search = this._bookingsSearch().toLowerCase().trim();
+    const from = this._dateFrom();
+    const to = this._dateTo();
+    const sort = this._sortBy();
+
+    let filtered = this._bookings();
+
+    if (status) {
+      filtered = filtered.filter((b: Booking) => b.status === status);
+    }
+
+    if (search) {
+      filtered = filtered.filter((b: Booking) =>
+        b.userName.toLowerCase().includes(search) ||
+        b.phone.includes(search) ||
+        b.notes?.toLowerCase().includes(search)
+      );
+    }
+
+    if (from) {
+      const fromDate = new Date(from);
+      filtered = filtered.filter((b: Booking) => new Date(b.createdAt) >= fromDate);
+    }
+
+    if (to) {
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter((b: Booking) => new Date(b.createdAt) <= toDate);
+    }
+
+    if (sort === 'date') {
+      filtered = [...filtered].sort((a: Booking, b: Booking) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    } else if (sort === 'status') {
+      const statusOrder: Record<BookingStatus, number> = { pending: 0, confirmed: 1, cancelled: 2 };
+      filtered = [...filtered].sort((a: Booking, b: Booking) =>
+        statusOrder[a.status] - statusOrder[b.status]
+      );
+    }
+
+    return filtered;
   });
 
   constructor() {
     this._loadFromStorage();
+    this._loadFavorites();
     effect(() => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this._bookings()));
+    });
+    effect(() => {
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify([...this._favorites()]));
     });
   }
 
@@ -136,6 +203,17 @@ export class BookingService {
     }
   }
 
+  private _loadFavorites(): void {
+    try {
+      const saved = localStorage.getItem(FAVORITES_KEY);
+      if (saved) {
+        this._favorites.set(new Set(JSON.parse(saved) as string[]));
+      }
+    } catch {
+      this._favorites.set(new Set());
+    }
+  }
+
   setSearch(query: string): void {
     this._searchQuery.set(query);
   }
@@ -146,6 +224,28 @@ export class BookingService {
 
   setBookingsFilter(status: BookingStatus | ''): void {
     this._bookingsFilter.set(status);
+  }
+
+  setBookingsSearch(query: string): void {
+    this._bookingsSearch.set(query);
+  }
+
+  setDateRange(from: string | null, to: string | null): void {
+    this._dateFrom.set(from);
+    this._dateTo.set(to);
+  }
+
+  setSortBy(sort: 'date' | 'status'): void {
+    this._sortBy.set(sort);
+  }
+
+  setPriceRange(min: number | null, max: number | null): void {
+    this._minPrice.set(min);
+    this._maxPrice.set(max);
+  }
+
+  setShowFavoritesOnly(show: boolean): void {
+    this._showFavoritesOnly.set(show);
   }
 
   createBooking(formValue: BookingFormValue): Booking {
@@ -170,5 +270,55 @@ export class BookingService {
 
   getServiceById(id: string): Service | undefined {
     return this._services().find((s: Service) => s.id === id);
+  }
+
+  isFavorite(serviceId: string): boolean {
+    return this._favorites().has(serviceId);
+  }
+
+  toggleFavorite(serviceId: string): void {
+    this._favorites.update((set: Set<string>) => {
+      const newSet = new Set(set);
+      if (newSet.has(serviceId)) {
+        newSet.delete(serviceId);
+      } else {
+        newSet.add(serviceId);
+      }
+      return newSet;
+    });
+  }
+
+  exportBookingsToCSV(): void {
+    const bookings = this._bookings();
+    if (bookings.length === 0) return;
+
+    const headers = ['ID', 'Service', 'User Name', 'Phone', 'Status', 'Notes', 'Created At'];
+    const rows = bookings.map((b: Booking) => {
+      const service = this.getServiceById(b.serviceId);
+      return [
+        b.id,
+        service?.title ?? 'Unknown',
+        b.userName,
+        b.phone,
+        b.status,
+        b.notes ?? '',
+        b.createdAt,
+      ];
+    });
+
+    const csvContent = [headers, ...rows]
+      .map((row: string[]) => row.map((cell: string) => `"${cell.replaceAll('"', '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `bookings_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   }
 }

@@ -20,33 +20,64 @@ import { Service, ServiceType } from '../../../../shared/models/service.model';
         </div>
 
         <div class="sticky top-20 z-30 bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur-sm py-4 mb-8 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-          <div class="flex flex-col sm:flex-row gap-3 px-4">
-            <div class="relative flex-1">
-              <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-              <input
-                type="text"
-                [(ngModel)]="searchQuery"
-                (ngModelChange)="onSearch($event)"
-                placeholder="ابحث عن خدمة..."
-                class="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
+          <div class="flex flex-col gap-3 px-4">
+            <div class="flex flex-col sm:flex-row gap-3">
+              <div class="relative flex-1">
+                <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                <input
+                  type="text"
+                  [(ngModel)]="searchQuery"
+                  (ngModelChange)="onSearch($event)"
+                  placeholder="ابحث عن خدمة..."
+                  class="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+              <div class="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
+                @for (filter of filters; track filter.value) {
+                  <button
+                    (click)="setFilter(filter.value)"
+                    class="px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all"
+                    [class.bg-primary-600]="activeFilter === filter.value"
+                    [class.text-white]="activeFilter === filter.value"
+                    [class.bg-white]="activeFilter !== filter.value"
+                    [class.text-gray-600]="activeFilter !== filter.value"
+                    [class.border]="activeFilter !== filter.value"
+                    [class.border-gray-200]="activeFilter !== filter.value"
+                    [class.dark:bg-gray-700]="activeFilter !== filter.value"
+                    [class.dark:text-gray-300]="activeFilter !== filter.value"
+                    [class.dark:border-gray-600]="activeFilter !== filter.value"
+                  >
+                    {{ filter.label }}
+                  </button>
+                }
+              </div>
             </div>
-            <div class="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
-              @for (filter of filters; track filter.value) {
+            <div class="flex items-center gap-3 text-sm">
+              <span class="text-gray-600 dark:text-gray-400 whitespace-nowrap">نطاق السعر:</span>
+              <input
+                type="number"
+                [(ngModel)]="minPrice"
+                (ngModelChange)="onPriceChange()"
+                placeholder="من"
+                min="0"
+                class="w-24 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <span class="text-gray-400">-</span>
+              <input
+                type="number"
+                [(ngModel)]="maxPrice"
+                (ngModelChange)="onPriceChange()"
+                placeholder="إلى"
+                min="0"
+                class="w-24 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <span class="text-gray-500 dark:text-gray-400">ر.س</span>
+              @if (minPrice || maxPrice) {
                 <button
-                  (click)="setFilter(filter.value)"
-                  class="px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all"
-                  [class.bg-primary-600]="activeFilter === filter.value"
-                  [class.text-white]="activeFilter === filter.value"
-                  [class.bg-white]="activeFilter !== filter.value"
-                  [class.text-gray-600]="activeFilter !== filter.value"
-                  [class.border]="activeFilter !== filter.value"
-                  [class.border-gray-200]="activeFilter !== filter.value"
-                  [class.dark:bg-gray-700]="activeFilter !== filter.value"
-                  [class.dark:text-gray-300]="activeFilter !== filter.value"
-                  [class.dark:border-gray-600]="activeFilter !== filter.value"
+                  (click)="clearPriceFilter()"
+                  class="text-red-600 hover:text-red-700 text-xs font-medium"
                 >
-                  {{ filter.label }}
+                  مسح
                 </button>
               }
             </div>
@@ -95,13 +126,16 @@ export class MarketplacePageComponent implements OnInit {
   isLoading = signal(true);
   selectedService = signal<Service | null>(null);
   searchQuery = '';
+  minPrice: number | null = null;
+  maxPrice: number | null = null;
 
-  readonly filters: { value: ServiceType | ''; label: string }[] = [
+  readonly filters: { value: ServiceType | '' | 'favorites'; label: string }[] = [
     { value: '', label: 'الكل' },
     { value: 'hotel', label: 'فنادق' },
     { value: 'transport', label: 'نقل' },
     { value: 'food', label: 'مطاعم' },
     { value: 'visa', label: 'تأشيرات' },
+    { value: 'favorites', label: 'المفضلة ❤️' },
   ];
 
   get activeFilter(): ServiceType | '' {
@@ -120,8 +154,23 @@ export class MarketplacePageComponent implements OnInit {
     this.bookingService.setSearch(query);
   }
 
-  setFilter(type: ServiceType | ''): void {
-    this.bookingService.setFilterType(type);
+  setFilter(type: ServiceType | '' | 'favorites'): void {
+    if (type === 'favorites') {
+      this.bookingService.setShowFavoritesOnly(true);
+    } else {
+      this.bookingService.setShowFavoritesOnly(false);
+      this.bookingService.setFilterType(type);
+    }
+  }
+
+  onPriceChange(): void {
+    this.bookingService.setPriceRange(this.minPrice, this.maxPrice);
+  }
+
+  clearPriceFilter(): void {
+    this.minPrice = null;
+    this.maxPrice = null;
+    this.bookingService.setPriceRange(null, null);
   }
 
   openBookingModal(serviceId: string): void {
