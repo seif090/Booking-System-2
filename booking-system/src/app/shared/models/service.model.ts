@@ -9,6 +9,7 @@ export interface Service {
   price: number;
   location?: string;
   rating?: number;
+  available?: boolean;
 }
 
 export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {

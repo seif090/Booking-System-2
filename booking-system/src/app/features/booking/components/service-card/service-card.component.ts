@@ -23,6 +23,10 @@ import { BookingService } from '../../services/booking.service';
             <span>{{ service.rating }}</span>
           </div>
         }
+        <div class="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold text-white bg-black/40 backdrop-blur-sm">
+          <span class="w-2 h-2 rounded-full" [class.bg-emerald-400]="isAvailable" [class.bg-red-400]="!isAvailable"></span>
+          <span>{{ isAvailable ? 'متاح' : 'غير متاح' }}</span>
+        </div>
         <div class="absolute top-3 left-3 flex gap-2">
           <button
             (click)="$event.stopPropagation(); toggleFavorite()"
@@ -83,6 +87,10 @@ export class ServiceCardComponent {
 
   get isFav(): boolean {
     return this.bookingService.isFavorite(this.service.id);
+  }
+
+  get isAvailable(): boolean {
+    return this.service.available ?? true;
   }
 
   toggleFavorite(): void {
